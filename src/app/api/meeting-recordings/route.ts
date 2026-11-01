@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const recordingType = searchParams.get('recordingType');
 
-    let query = db.select().from(meetingRecordings);
+    let query = db.select().from(meetingRecordings).$dynamic().$dynamic();
 
     // Build filter conditions
     const conditions = [];

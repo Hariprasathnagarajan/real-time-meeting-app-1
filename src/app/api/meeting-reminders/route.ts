@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
           eq(meetingReminders.id, parseInt(id)),
           eq(meetingReminders.userId, user.id)
         ))
-        .limit(1);
+        .limit(1).$dynamic();
 
       if (reminder.length === 0) {
         return NextResponse.json({ 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const reminderType = searchParams.get('reminderType');
 
-    let query = db.select().from(meetingReminders);
+    let query = db.select().from(meetingReminders).$dynamic().$dynamic();
 
     // Build filter conditions
     const conditions = [eq(meetingReminders.userId, user.id)];
@@ -198,7 +198,7 @@ export async function PUT(request: NextRequest) {
         eq(meetingReminders.id, parseInt(id)),
         eq(meetingReminders.userId, user.id)
       ))
-      .limit(1);
+      .limit(1).$dynamic();
 
     if (existingReminder.length === 0) {
       return NextResponse.json({ 
@@ -288,7 +288,7 @@ export async function DELETE(request: NextRequest) {
         eq(meetingReminders.id, parseInt(id)),
         eq(meetingReminders.userId, user.id)
       ))
-      .limit(1);
+      .limit(1).$dynamic();
 
     if (existingReminder.length === 0) {
       return NextResponse.json({ 

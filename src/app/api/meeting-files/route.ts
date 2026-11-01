@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const uploadedByUserId = searchParams.get('uploadedByUserId');
     const fileType = searchParams.get('fileType');
 
-    let query = db.select().from(meetingFiles);
+    let query = db.select().from(meetingFiles).$dynamic().$dynamic();
 
     // Build filter conditions
     const conditions = [];

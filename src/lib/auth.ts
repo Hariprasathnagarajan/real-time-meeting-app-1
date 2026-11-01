@@ -1,62 +1,48 @@
 import type { NextRequest } from 'next/server';
-import { asc, eq } from 'drizzle-orm';
+import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from '@/db';
-import { user } from '@/db/schema';
+import * as schema from '@/db/schema';
 
-const DEFAULT_USER_NAME = process.env.DEFAULT_USER_NAME?.trim() || 'Zoom Host';
-const DEFAULT_USER_EMAIL = process.env.DEFAULT_USER_EMAIL?.trim() || 'host@zoom.local';
+const isProduction = process.env.NODE_ENV === 'production';
+// Next evaluates route modules while building. The fallback keeps local builds
+// deterministic; production deployments must provide BETTER_AUTH_SECRET.
+const secret = process.env.BETTER_AUTH_SECRET || 'local-development-secret-change-me';
 
-export async function getCurrentUser(request?: NextRequest) {
-  // Check if a specific userId was passed via header, query, or cookie
-  const requestedUserId =
-    request?.headers.get('x-user-id') ||
-    request?.nextUrl?.searchParams?.get('userId') ||
-    request?.cookies?.get('zoom_user_id')?.value;
+export const auth = betterAuth({
+  secret,
+  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  database: drizzleAdapter(db, {
+    provider: 'sqlite',
+    schema,
+    usePlural: false,
+  }),
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: false,
+  },
+  advanced: {
+    useSecureCookies: isProduction,
+  },
+});
 
-  if (requestedUserId) {
-    const found = await db
-      .select()
-      .from(user)
-      .where(eq(user.id, requestedUserId))
-      .limit(1);
+export async function getCurrentUser(request: NextRequest) {
+  if (isProduction && !process.env.BETTER_AUTH_SECRET) return null;
 
-    if (found.length > 0) {
-      return found[0];
-    }
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
+
+  return session?.user ?? null;
+}
+
+export async function requireCurrentUser(request: NextRequest) {
+  const currentUser = await getCurrentUser(request);
+  if (!currentUser) {
+    throw new Response(JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-
-  // Otherwise fallback to existing primary user or create default host
-  const existing = await db
-    .select()
-    .from(user)
-    .orderBy(asc(user.createdAt))
-    .limit(1);
-
-  if (existing.length > 0) {
-    return existing[0];
-  }
-
-  const now = new Date().toISOString();
-  const id = crypto.randomUUID();
-
-  await db
-    .insert(user)
-    .values({
-      id,
-      email: DEFAULT_USER_EMAIL,
-      name: DEFAULT_USER_NAME,
-      emailVerified: true,
-      image: null,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoNothing();
-
-  const created = await db
-    .select()
-    .from(user)
-    .where(eq(user.email, DEFAULT_USER_EMAIL))
-    .limit(1);
-
-  return created[0] ?? null;
+  return currentUser;
 }

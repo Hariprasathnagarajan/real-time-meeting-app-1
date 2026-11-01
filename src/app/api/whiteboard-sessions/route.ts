@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const meetingId = searchParams.get('meetingId');
 
-    let query = db.select().from(whiteboardSessions).orderBy(desc(whiteboardSessions.updatedAt));
+    let query = db.select().from(whiteboardSessions).orderBy(desc(whiteboardSessions.updatedAt)).$dynamic().$dynamic();
 
     // Filter by meetingId if provided
     if (meetingId) {

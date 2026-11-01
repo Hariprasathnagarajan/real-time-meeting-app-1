@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { compare } from 'bcrypt';
 import { db } from '@/db';
-import { meetingParticipants } from '@/db/schema';
+import { meetingParticipants, meetings } from '@/db/schema';
+import { getCurrentUser } from '@/lib/auth';
 import { eq, and, desc } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
@@ -86,8 +88,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+
     const body = await request.json();
-    const { meetingId, userId, displayName, role } = body;
+    const { meetingId, displayName, passcode } = body;
 
     if (!meetingId) {
       return NextResponse.json(
@@ -103,15 +108,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validRoles = ['host', 'co_host', 'participant', 'guest'];
-    const assignedRole = role && validRoles.includes(role) ? role : 'participant';
+    const meeting = await db.select().from(meetings).where(eq(meetings.id, parseInt(meetingId))).limit(1);
+    if (!meeting[0]) return NextResponse.json({ error: 'Meeting not found' }, { status: 404 });
+    if (meeting[0].passwordHash && (!passcode || !(await compare(String(passcode), meeting[0].passwordHash)))) {
+      return NextResponse.json({ error: 'Incorrect meeting passcode', code: 'INVALID_PASSCODE' }, { status: 403 });
+    }
 
+    const assignedRole = meeting[0].hostUserId === currentUser.id ? 'host' : 'participant';
     const now = new Date().toISOString();
     const newParticipant = await db
       .insert(meetingParticipants)
       .values({
         meetingId: parseInt(meetingId),
-        userId: userId || null,
+        userId: currentUser.id,
         displayName: displayName.trim(),
         role: assignedRole,
         status: 'waiting',

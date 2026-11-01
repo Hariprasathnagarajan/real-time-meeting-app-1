@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const reactionType = searchParams.get('reactionType');
 
-    let query = db.select().from(reactions);
+    let query = db.select().from(reactions).$dynamic().$dynamic();
 
     // Build filter conditions
     const conditions = [];

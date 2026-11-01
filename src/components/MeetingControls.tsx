@@ -37,6 +37,7 @@ interface MeetingControlsProps {
   isScreenSharing: boolean;
   isHandRaised: boolean;
   isRecording: boolean;
+  recordingAvailable?: boolean;
   isCaptionsEnabled?: boolean;
   isHost?: boolean;
   onToggleAudio: () => void;
@@ -66,6 +67,7 @@ export function MeetingControls({
   isScreenSharing,
   isHandRaised,
   isRecording,
+  recordingAvailable = false,
   isCaptionsEnabled = false,
   isHost = false,
   onToggleAudio,
@@ -231,11 +233,15 @@ export function MeetingControls({
           <button
             type="button"
             onClick={onToggleRecording}
+            disabled={!recordingAvailable}
+            title={recordingAvailable ? 'Start or stop recording' : 'Recording is unavailable until server recording is configured'}
             className={cn(
               'flex flex-col items-center justify-center px-2.5 py-1.5 rounded-lg transition-colors min-w-[50px]',
               isRecording
                 ? 'text-red-400 bg-red-600/10'
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
+                : recordingAvailable
+                  ? 'text-gray-300 hover:text-white hover:bg-white/5'
+                  : 'text-gray-600 cursor-not-allowed opacity-60'
             )}
           >
             <Circle className={cn('w-5 h-5 mb-0.5', isRecording && 'fill-red-500 text-red-500 animate-pulse')} />

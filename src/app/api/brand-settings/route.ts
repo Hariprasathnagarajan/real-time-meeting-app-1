@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
           eq(brandSettings.id, parseInt(id)),
           eq(brandSettings.userId, user.id)
         ))
-        .limit(1);
+        .limit(1).$dynamic();
 
       if (settings.length === 0) {
         return NextResponse.json({ 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const filterUserId = searchParams.get('userId');
 
-    let query = db.select().from(brandSettings);
+    let query = db.select().from(brandSettings).$dynamic().$dynamic();
 
     // Apply user filtering based on authentication
     if (filterUserId && filterUserId === user.id) {
@@ -193,7 +193,7 @@ export async function PUT(request: NextRequest) {
         eq(brandSettings.id, parseInt(id)),
         eq(brandSettings.userId, user.id)
       ))
-      .limit(1);
+      .limit(1).$dynamic();
 
     if (existing.length === 0) {
       return NextResponse.json({ 
@@ -292,7 +292,7 @@ export async function DELETE(request: NextRequest) {
         eq(brandSettings.id, parseInt(id)),
         eq(brandSettings.userId, user.id)
       ))
-      .limit(1);
+      .limit(1).$dynamic();
 
     if (existing.length === 0) {
       return NextResponse.json({ 

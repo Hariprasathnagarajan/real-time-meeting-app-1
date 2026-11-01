@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const createdByUserId = searchParams.get('createdByUserId');
     const isActive = searchParams.get('isActive');
 
-    let query = db.select().from(polls);
+    let query = db.select().from(polls).$dynamic().$dynamic();
 
     // Build WHERE conditions
     const conditions = [];

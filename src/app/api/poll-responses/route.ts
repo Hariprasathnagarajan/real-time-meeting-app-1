@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       const response = await db.select()
         .from(pollResponses)
         .where(eq(pollResponses.id, parseInt(id)))
-        .limit(1);
+        .limit(1).$dynamic();
 
       if (response.length === 0) {
         return NextResponse.json({ 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const pollId = searchParams.get('pollId');
     const userId = searchParams.get('userId');
 
-    let query = db.select().from(pollResponses);
+    let query = db.select().from(pollResponses).$dynamic().$dynamic();
 
     // Apply filters
     const conditions = [];
@@ -155,7 +155,7 @@ export async function PUT(request: NextRequest) {
     const existing = await db.select()
       .from(pollResponses)
       .where(eq(pollResponses.id, parseInt(id)))
-      .limit(1);
+      .limit(1).$dynamic();
 
     if (existing.length === 0) {
       return NextResponse.json({ 
@@ -224,7 +224,7 @@ export async function DELETE(request: NextRequest) {
     const existing = await db.select()
       .from(pollResponses)
       .where(eq(pollResponses.id, parseInt(id)))
-      .limit(1);
+      .limit(1).$dynamic();
 
     if (existing.length === 0) {
       return NextResponse.json({ 

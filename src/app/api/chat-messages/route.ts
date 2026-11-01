@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { chatMessages, meetings, user } from '@/db/schema';
+import { chatMessages, meetings, meetingParticipants } from '@/db/schema';
+import { getCurrentUser } from '@/lib/auth';
 import { eq, and, asc, gt, or, isNull } from 'drizzle-orm';
+
+async function canChat(meetingId: number, userId: string) {
+  const meeting = await db.select({ hostUserId: meetings.hostUserId }).from(meetings).where(eq(meetings.id, meetingId)).limit(1);
+  if (!meeting[0]) return false;
+  if (meeting[0].hostUserId === userId) return true;
+  const member = await db.select({ id: meetingParticipants.id }).from(meetingParticipants).where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId), or(eq(meetingParticipants.status, 'admitted'), eq(meetingParticipants.status, 'in_meeting')))).limit(1);
+  return member.length > 0;
+}
 
 export async function GET(request: NextRequest) {
   try {
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
 
@@ -29,6 +40,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      if (!(await canChat(message[0].meetingId, currentUser.id))) return NextResponse.json({ error: 'Meeting access denied' }, { status: 403 });
       return NextResponse.json(message[0], { status: 200 });
     }
 
@@ -40,10 +52,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const currentUserId = searchParams.get('userId');
+    const currentUserId = currentUser.id;
     const limit = Math.min(parseInt(searchParams.get('limit') || '200'), 500);
     const offset = parseInt(searchParams.get('offset') || '0');
     const sinceId = searchParams.get('sinceId');
+
+    if (!(await canChat(parseInt(meetingId), currentUser.id))) return NextResponse.json({ error: 'Meeting access denied' }, { status: 403 });
 
     const conditions = [eq(chatMessages.meetingId, parseInt(meetingId))];
 
@@ -83,8 +97,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     const body = await request.json();
-    const { meetingId, userId, senderName, recipientUserId, recipientName, message } = body;
+    const { meetingId, recipientUserId, recipientName, message } = body;
 
     if (!meetingId) {
       return NextResponse.json(
@@ -96,13 +112,6 @@ export async function POST(request: NextRequest) {
     if (isNaN(parseInt(meetingId))) {
       return NextResponse.json(
         { error: 'Meeting ID must be a valid integer', code: 'INVALID_MEETING_ID' },
-        { status: 400 }
-      );
-    }
-
-    if (!senderName || typeof senderName !== 'string' || senderName.trim() === '') {
-      return NextResponse.json(
-        { error: 'Sender name is required', code: 'MISSING_SENDER_NAME' },
         { status: 400 }
       );
     }
@@ -127,12 +136,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!(await canChat(parseInt(meetingId), currentUser.id))) return NextResponse.json({ error: 'Meeting access denied' }, { status: 403 });
+
     const newMessage = await db
       .insert(chatMessages)
       .values({
         meetingId: parseInt(meetingId),
-        userId: userId || null,
-        senderName: senderName.trim(),
+        userId: currentUser.id,
+        senderName: currentUser.name,
         recipientUserId: recipientUserId || null,
         recipientName: recipientName || null,
         message: message.trim(),

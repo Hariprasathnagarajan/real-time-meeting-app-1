@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useWebRTC } from '@/hooks/useWebRTC';
+import { useLiveKit } from '@/hooks/useLiveKit';
 import { VideoTile } from '@/components/VideoTile';
 import { MeetingControls } from '@/components/MeetingControls';
 import { ChatSidebar, ChatMessage, ChatParticipantOption } from '@/components/ChatSidebar';
@@ -158,38 +159,57 @@ export default function MeetingRoom() {
   const captionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // WebRTC hook initialization
-  const {
-    localStream,
-    participants: webrtcParticipants,
-    isAudioEnabled,
-    isVideoEnabled,
-    isScreenSharing,
-    isSpeaking: isLocalSpeaking,
-    audioLevel: localAudioLevel,
-    error: mediaError,
-    virtualBgMode,
-    audioInputs,
-    videoInputs,
-    audioOutputs,
-    selectedAudioInput,
-    selectedVideoInput,
-    selectedAudioOutput,
-    toggleAudio,
-    toggleVideo,
-    startScreenShare,
-    stopScreenShare,
-    setVirtualBackground,
-    setDevice,
-    leaveMeeting,
-    sendSignal,
-  } = useWebRTC({
+  const meshMedia = useWebRTC({
     roomId,
     userId: currentUser?.id ?? '',
     userName: currentUser?.name ?? 'User',
-    enabled: hasJoinedLobby && Boolean(currentUser?.id),
+    enabled: hasJoinedLobby && Boolean(currentUser?.id) && process.env.NEXT_PUBLIC_USE_LIVEKIT !== 'true',
     initialAudio,
     initialVideo,
   });
+  const liveKitEnabled = process.env.NEXT_PUBLIC_USE_LIVEKIT === 'true';
+  const liveKitMedia = useLiveKit({
+    meetingCode: roomId,
+    enabled: liveKitEnabled && hasJoinedLobby && Boolean(currentUser?.id),
+  });
+  const webrtcParticipants = liveKitEnabled
+    ? Array.from(liveKitMedia.participants.values()).map((participant) => ({
+        ...participant,
+        isSpeaking: false,
+        audioLevel: 0,
+      }))
+    : meshMedia.participants;
+  const localStream = liveKitEnabled ? liveKitMedia.localStream : meshMedia.localStream;
+  const isAudioEnabled = liveKitEnabled ? liveKitMedia.isAudioEnabled : meshMedia.isAudioEnabled;
+  const isVideoEnabled = liveKitEnabled ? liveKitMedia.isVideoEnabled : meshMedia.isVideoEnabled;
+  const isScreenSharing = liveKitEnabled ? liveKitMedia.isScreenSharing : meshMedia.isScreenSharing;
+  const isLocalSpeaking = liveKitEnabled ? false : meshMedia.isSpeaking;
+  const localAudioLevel = liveKitEnabled ? 0 : meshMedia.audioLevel;
+  const mediaError = liveKitEnabled ? liveKitMedia.error : meshMedia.error;
+  const virtualBgMode = meshMedia.virtualBgMode;
+  const audioInputs = meshMedia.audioInputs;
+  const videoInputs = meshMedia.videoInputs;
+  const audioOutputs = meshMedia.audioOutputs;
+  const selectedAudioInput = meshMedia.selectedAudioInput;
+  const selectedVideoInput = meshMedia.selectedVideoInput;
+  const selectedAudioOutput = meshMedia.selectedAudioOutput;
+  const toggleAudio = liveKitEnabled ? liveKitMedia.toggleAudio : meshMedia.toggleAudio;
+  const toggleVideo = liveKitEnabled ? liveKitMedia.toggleVideo : meshMedia.toggleVideo;
+  const setVirtualBackground = meshMedia.setVirtualBackground;
+  const setDevice = meshMedia.setDevice;
+  const sendSignal = meshMedia.sendSignal;
+  const startScreenShare = useCallback(async () => {
+    if (liveKitEnabled) await liveKitMedia.toggleScreenShare();
+    else await meshMedia.startScreenShare();
+  }, [liveKitEnabled, liveKitMedia, meshMedia]);
+  const stopScreenShare = useCallback(async () => {
+    if (liveKitEnabled) await liveKitMedia.toggleScreenShare();
+    else meshMedia.stopScreenShare();
+  }, [liveKitEnabled, liveKitMedia, meshMedia]);
+  const leaveMeeting = useCallback(async () => {
+    if (liveKitEnabled) await liveKitMedia.leaveRoom();
+    else meshMedia.leaveMeeting();
+  }, [liveKitEnabled, liveKitMedia, meshMedia]);
 
   // Resolve meeting on mount
   useEffect(() => {
@@ -399,11 +419,6 @@ export default function MeetingRoom() {
   }) => {
     if (!meeting || !currentUser) return;
 
-    if (meeting.isPasswordProtected && meeting.password && options.passcode !== meeting.password) {
-      toast.error('Incorrect passcode for this meeting');
-      return;
-    }
-
     if (meeting.isLocked && !isHost) {
       toast.error('This meeting has been locked by the host');
       return;
@@ -419,9 +434,8 @@ export default function MeetingRoom() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           meetingId: meeting.id,
-          userId: currentUser.id,
           displayName: options.displayName,
-          role: isHost ? 'host' : 'participant',
+          passcode: options.passcode,
         }),
       });
 

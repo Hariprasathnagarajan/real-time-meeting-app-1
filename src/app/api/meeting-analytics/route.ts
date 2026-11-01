@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       const record = await db.select()
         .from(meetingAnalytics)
         .where(eq(meetingAnalytics.id, parseInt(id)))
-        .limit(1);
+        .limit(1).$dynamic();
 
       if (record.length === 0) {
         return NextResponse.json({ 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const meetingId = searchParams.get('meetingId');
 
-    let query = db.select().from(meetingAnalytics);
+    let query = db.select().from(meetingAnalytics).$dynamic().$dynamic();
 
     // Filter by meetingId if provided
     if (meetingId) {
@@ -217,7 +217,7 @@ export async function PUT(request: NextRequest) {
     const existing = await db.select()
       .from(meetingAnalytics)
       .where(eq(meetingAnalytics.id, parseInt(id)))
-      .limit(1);
+      .limit(1).$dynamic();
 
     if (existing.length === 0) {
       return NextResponse.json({ 
@@ -333,7 +333,7 @@ export async function DELETE(request: NextRequest) {
     const existing = await db.select()
       .from(meetingAnalytics)
       .where(eq(meetingAnalytics.id, parseInt(id)))
-      .limit(1);
+      .limit(1).$dynamic();
 
     if (existing.length === 0) {
       return NextResponse.json({ 

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
           eq(calendarIntegrations.id, parseInt(id)),
           eq(calendarIntegrations.userId, user.id)
         ))
-        .limit(1);
+        .limit(1).$dynamic();
 
       if (integration.length === 0) {
         return NextResponse.json({ 
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     let query = db.select()
       .from(calendarIntegrations)
-      .where(eq(calendarIntegrations.userId, user.id));
+      .where(eq(calendarIntegrations.userId, user.id)).$dynamic();
 
     // Build filter conditions
     const conditions = [eq(calendarIntegrations.userId, user.id)];
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       .where(and(...conditions))
       .orderBy(desc(calendarIntegrations.createdAt))
       .limit(limit)
-      .offset(offset);
+      .offset(offset).$dynamic();
 
     return NextResponse.json(integrations, { status: 200 });
   } catch (error) {
@@ -187,7 +187,7 @@ export async function PUT(request: NextRequest) {
         eq(calendarIntegrations.id, parseInt(id)),
         eq(calendarIntegrations.userId, user.id)
       ))
-      .limit(1);
+      .limit(1).$dynamic();
 
     if (existing.length === 0) {
       return NextResponse.json({ 
@@ -267,7 +267,7 @@ export async function DELETE(request: NextRequest) {
         eq(calendarIntegrations.id, parseInt(id)),
         eq(calendarIntegrations.userId, user.id)
       ))
-      .limit(1);
+      .limit(1).$dynamic();
 
     if (existing.length === 0) {
       return NextResponse.json({ 
