@@ -6,15 +6,15 @@ import { Clock, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface WaitingParticipant {
-  id: string;
+  id: number;
   displayName: string;
   joinedAt: string;
 }
 
 interface WaitingRoomProps {
   participants: WaitingParticipant[];
-  onAdmit: (participantId: string) => void;
-  onReject: (participantId: string) => void;
+  onAdmit: (participantId: number) => void;
+  onReject: (participantId: number) => void;
   onAdmitAll: () => void;
   className?: string;
 }

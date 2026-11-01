@@ -26,6 +26,12 @@ export const meetings = sqliteTable('meetings', {
   isRecordingEnabled: integer('is_recording_enabled', { mode: 'boolean' }).default(false),
   isWaitingRoomEnabled: integer('is_waiting_room_enabled', { mode: 'boolean' }).default(true),
   isPasswordProtected: integer('is_password_protected', { mode: 'boolean' }).default(false),
+  isLocked: integer('is_locked', { mode: 'boolean' }).default(false),
+  allowScreenShare: integer('allow_screen_share', { mode: 'boolean' }).default(true),
+  allowChat: integer('allow_chat', { mode: 'boolean' }).default(true),
+  allowUnmute: integer('allow_unmute', { mode: 'boolean' }).default(true),
+  allowVideo: integer('allow_video', { mode: 'boolean' }).default(true),
+  allowRename: integer('allow_rename', { mode: 'boolean' }).default(true),
   maxParticipants: integer('max_participants').default(100),
   status: text('status').notNull().default('scheduled'),
   createdAt: text('created_at').notNull(),
@@ -46,6 +52,18 @@ export const meetingParticipants = sqliteTable('meeting_participants', {
   isHandRaised: integer('is_hand_raised', { mode: 'boolean' }).default(false),
   joinedAt: text('joined_at'),
   leftAt: text('left_at'),
+  createdAt: text('created_at').notNull(),
+});
+
+// Chat messages table
+export const chatMessages = sqliteTable('chat_messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  meetingId: integer('meeting_id').notNull().references(() => meetings.id),
+  userId: text('user_id').references(() => user.id),
+  senderName: text('sender_name').notNull(),
+  recipientUserId: text('recipient_user_id'),
+  recipientName: text('recipient_name'),
+  message: text('message').notNull(),
   createdAt: text('created_at').notNull(),
 });
 
@@ -116,6 +134,28 @@ export const whiteboardSessions = sqliteTable('whiteboard_sessions', {
   lastUpdatedByUserId: text('last_updated_by_user_id').references(() => user.id),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
+});
+
+// Breakout rooms table
+export const breakoutRooms = sqliteTable('breakout_rooms', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  meetingId: integer('meeting_id').notNull().references(() => meetings.id),
+  name: text('name').notNull(),
+  assignedParticipantIds: text('assigned_participant_ids', { mode: 'json' }).notNull(),
+  status: text('status').notNull().default('closed'), // open, closed
+  createdAt: text('created_at').notNull(),
+});
+
+// Signaling messages table (WebRTC mesh negotiation)
+export const signalingMessages = sqliteTable('signaling_messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  meetingCode: text('meeting_code').notNull(),
+  senderId: text('sender_id').notNull(),
+  senderName: text('sender_name').notNull(),
+  targetId: text('target_id').notNull(),
+  type: text('type').notNull(),
+  payload: text('payload').notNull(),
+  createdAt: text('created_at').notNull(),
 });
 
 // Meeting analytics table

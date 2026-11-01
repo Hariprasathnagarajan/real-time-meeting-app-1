@@ -41,8 +41,6 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const role = searchParams.get('role');
 
-    let query = db.select().from(meetingParticipants);
-
     // Build where conditions
     const conditions = [];
     
@@ -68,11 +66,10 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(meetingParticipants.role, role));
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const participants = await query
+    const participants = await db
+      .select()
+      .from(meetingParticipants)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(meetingParticipants.createdAt))
       .limit(limit)
       .offset(offset);
@@ -92,7 +89,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { meetingId, userId, displayName, role } = body;
 
-    // Validate required fields
     if (!meetingId) {
       return NextResponse.json(
         { error: 'meetingId is required', code: 'MISSING_MEETING_ID' },
@@ -100,47 +96,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!displayName || displayName.trim() === '') {
+    if (!displayName || typeof displayName !== 'string' || displayName.trim() === '') {
       return NextResponse.json(
         { error: 'displayName is required', code: 'MISSING_DISPLAY_NAME' },
         { status: 400 }
       );
     }
 
-    // Validate meetingId is a valid integer
-    if (isNaN(parseInt(meetingId))) {
-      return NextResponse.json(
-        { error: 'meetingId must be a valid integer', code: 'INVALID_MEETING_ID' },
-        { status: 400 }
-      );
-    }
-
-    // Validate role if provided
     const validRoles = ['host', 'co_host', 'participant', 'guest'];
-    if (role && !validRoles.includes(role)) {
-      return NextResponse.json(
-        { error: 'Invalid role. Must be one of: host, co_host, participant, guest', code: 'INVALID_ROLE' },
-        { status: 400 }
-      );
-    }
+    const assignedRole = role && validRoles.includes(role) ? role : 'participant';
 
-    // Prepare participant data with defaults
-    const participantData = {
-      meetingId: parseInt(meetingId),
-      userId: userId || null,
-      displayName: displayName.trim(),
-      role: role || 'participant',
-      status: 'waiting',
-      isAudioMuted: false,
-      isVideoOff: false,
-      isScreenSharing: false,
-      isHandRaised: false,
-      createdAt: new Date().toISOString(),
-    };
-
+    const now = new Date().toISOString();
     const newParticipant = await db
       .insert(meetingParticipants)
-      .values(participantData)
+      .values({
+        meetingId: parseInt(meetingId),
+        userId: userId || null,
+        displayName: displayName.trim(),
+        role: assignedRole,
+        status: 'waiting',
+        isAudioMuted: false,
+        isVideoOff: false,
+        isScreenSharing: false,
+        isHandRaised: false,
+        createdAt: now,
+      })
       .returning();
 
     return NextResponse.json(newParticipant[0], { status: 201 });
@@ -165,7 +145,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Check if participant exists
     const existingParticipant = await db
       .select()
       .from(meetingParticipants)
@@ -180,9 +159,8 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { status, role, isAudioMuted, isVideoOff, isScreenSharing, isHandRaised, joinedAt, leftAt } = body;
+    const { status, role, displayName, isAudioMuted, isVideoOff, isScreenSharing, isHandRaised, joinedAt, leftAt } = body;
 
-    // Validate status if provided
     const validStatuses = ['waiting', 'admitted', 'in_meeting', 'left', 'removed'];
     if (status && !validStatuses.includes(status)) {
       return NextResponse.json(
@@ -191,7 +169,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Validate role if provided
     const validRoles = ['host', 'co_host', 'participant', 'guest'];
     if (role && !validRoles.includes(role)) {
       return NextResponse.json(
@@ -200,20 +177,17 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Build update object with only provided fields
-    const updateData: any = {};
+    const updateData: Record<string, any> = {};
 
     if (status !== undefined) updateData.status = status;
     if (role !== undefined) updateData.role = role;
+    if (displayName !== undefined) updateData.displayName = displayName.trim();
     if (isAudioMuted !== undefined) updateData.isAudioMuted = isAudioMuted;
     if (isVideoOff !== undefined) updateData.isVideoOff = isVideoOff;
     if (isScreenSharing !== undefined) updateData.isScreenSharing = isScreenSharing;
     if (isHandRaised !== undefined) updateData.isHandRaised = isHandRaised;
     if (joinedAt !== undefined) updateData.joinedAt = joinedAt;
     if (leftAt !== undefined) updateData.leftAt = leftAt;
-
-    // Always update timestamp
-    updateData.updatedAt = new Date().toISOString();
 
     const updatedParticipant = await db
       .update(meetingParticipants)
@@ -243,7 +217,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Check if participant exists
     const existingParticipant = await db
       .select()
       .from(meetingParticipants)
@@ -257,16 +230,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const deletedParticipant = await db
+    await db
       .delete(meetingParticipants)
-      .where(eq(meetingParticipants.id, parseInt(id)))
-      .returning();
+      .where(eq(meetingParticipants.id, parseInt(id)));
 
     return NextResponse.json(
-      {
-        message: 'Participant removed successfully',
-        participant: deletedParticipant[0],
-      },
+      { message: 'Participant removed successfully' },
       { status: 200 }
     );
   } catch (error) {

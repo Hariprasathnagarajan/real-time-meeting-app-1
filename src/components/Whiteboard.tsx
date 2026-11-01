@@ -44,10 +44,10 @@ export function Whiteboard({ onSave, initialData, className }: WhiteboardProps) 
     }
   }, [initialData]);
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = e.currentTarget;
+    canvas.setPointerCapture(e.pointerId);
     setIsDrawing(true);
-    const canvas = canvasRef.current;
-    if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -60,12 +60,10 @@ export function Whiteboard({ onSave, initialData, className }: WhiteboardProps) 
     ctx.moveTo(x, y);
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
+    const canvas = e.currentTarget;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -88,12 +86,13 @@ export function Whiteboard({ onSave, initialData, className }: WhiteboardProps) 
     }
   };
 
-  const stopDrawing = () => {
-    setIsDrawing(false);
-    const canvas = canvasRef.current;
-    if (canvas) {
-      onSave(canvas.toDataURL());
+  const stopDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = e.currentTarget;
+    if (canvas.hasPointerCapture(e.pointerId)) {
+      canvas.releasePointerCapture(e.pointerId);
     }
+    setIsDrawing(false);
+    onSave(canvas.toDataURL());
   };
 
   const clearCanvas = () => {
@@ -128,6 +127,9 @@ export function Whiteboard({ onSave, initialData, className }: WhiteboardProps) 
             onClick={() => setTool('pen')}
             variant={tool === 'pen' ? 'default' : 'outline'}
             size="sm"
+            aria-label="Pen"
+            aria-pressed={tool === 'pen'}
+            className="h-10 w-10 p-0"
           >
             <Pen className="w-4 h-4" />
           </Button>
@@ -135,13 +137,28 @@ export function Whiteboard({ onSave, initialData, className }: WhiteboardProps) 
             onClick={() => setTool('eraser')}
             variant={tool === 'eraser' ? 'default' : 'outline'}
             size="sm"
+            aria-label="Eraser"
+            aria-pressed={tool === 'eraser'}
+            className="h-10 w-10 p-0"
           >
             <Eraser className="w-4 h-4" />
           </Button>
-          <Button onClick={clearCanvas} variant="outline" size="sm">
+          <Button
+            onClick={clearCanvas}
+            variant="outline"
+            size="sm"
+            aria-label="Clear whiteboard"
+            className="h-10 w-10 p-0"
+          >
             <Trash2 className="w-4 h-4" />
           </Button>
-          <Button onClick={downloadCanvas} variant="outline" size="sm">
+          <Button
+            onClick={downloadCanvas}
+            variant="outline"
+            size="sm"
+            aria-label="Download whiteboard as PNG"
+            className="h-10 w-10 p-0"
+          >
             <Download className="w-4 h-4" />
           </Button>
         </div>
@@ -154,6 +171,7 @@ export function Whiteboard({ onSave, initialData, className }: WhiteboardProps) 
             type="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
+            aria-label="Drawing color"
             className="w-10 h-10 rounded cursor-pointer"
           />
         </div>
@@ -166,6 +184,7 @@ export function Whiteboard({ onSave, initialData, className }: WhiteboardProps) 
             max="20"
             value={lineWidth}
             onChange={(e) => setLineWidth(Number(e.target.value))}
+            aria-label="Brush size"
             className="w-32"
           />
         </div>
@@ -173,11 +192,12 @@ export function Whiteboard({ onSave, initialData, className }: WhiteboardProps) 
 
       <canvas
         ref={canvasRef}
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
-        className="w-full h-[500px] border border-white/10 rounded-lg cursor-crosshair"
+        onPointerDown={startDrawing}
+        onPointerMove={draw}
+        onPointerUp={stopDrawing}
+        onPointerCancel={stopDrawing}
+        aria-label="Whiteboard drawing canvas"
+        className="w-full h-[500px] border border-white/10 rounded-lg cursor-crosshair touch-none"
       />
     </Card>
   );

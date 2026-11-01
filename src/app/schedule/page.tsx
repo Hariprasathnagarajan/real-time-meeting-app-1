@@ -159,10 +159,10 @@ export default function ScheduleMeetingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+    <div className="min-h-dvh bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Schedule Meeting</h1>
             <p className="text-gray-400">Plan and manage your upcoming meetings</p>
@@ -211,7 +211,7 @@ export default function ScheduleMeetingPage() {
                       setFormData({ ...formData, title: e.target.value })
                     }
                     placeholder="Weekly Team Sync"
-                    className="bg-white/5 border-white/10 text-white"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
                     required
                   />
                 </div>
@@ -248,7 +248,7 @@ export default function ScheduleMeetingPage() {
                     setFormData({ ...formData, description: e.target.value })
                   }
                   placeholder="Brief description of the meeting agenda..."
-                  className="bg-white/5 border-white/10 text-white min-h-24"
+                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-400 min-h-24"
                 />
               </div>
 
@@ -269,7 +269,7 @@ export default function ScheduleMeetingPage() {
                         scheduledStartTime: e.target.value,
                       })
                     }
-                    className="bg-white/5 border-white/10 text-white"
+                    className="bg-white/5 border-white/10 text-white [color-scheme:dark]"
                     required
                   />
                 </div>
@@ -289,7 +289,7 @@ export default function ScheduleMeetingPage() {
                         scheduledEndTime: e.target.value,
                       })
                     }
-                    className="bg-white/5 border-white/10 text-white"
+                    className="bg-white/5 border-white/10 text-white [color-scheme:dark]"
                   />
                 </div>
               </div>
@@ -309,6 +309,8 @@ export default function ScheduleMeetingPage() {
                     </div>
                   </div>
                   <Switch
+                    id="passwordProtection"
+                    aria-label="Require password to join meeting"
                     checked={formData.isPasswordProtected}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, isPasswordProtected: checked })
@@ -329,7 +331,7 @@ export default function ScheduleMeetingPage() {
                         setFormData({ ...formData, password: e.target.value })
                       }
                       placeholder="Enter password"
-                      className="bg-white/5 border-white/10 text-white"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
                     />
                   </div>
                 )}
@@ -345,6 +347,8 @@ export default function ScheduleMeetingPage() {
                     </div>
                   </div>
                   <Switch
+                    id="waitingRoom"
+                    aria-label="Admit participants before joining"
                     checked={formData.isWaitingRoomEnabled}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, isWaitingRoomEnabled: checked })
@@ -363,6 +367,8 @@ export default function ScheduleMeetingPage() {
                     </div>
                   </div>
                   <Switch
+                    id="autoRecording"
+                    aria-label="Automatically record meeting"
                     checked={formData.isRecordingEnabled}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, isRecordingEnabled: checked })
@@ -421,7 +427,7 @@ export default function ScheduleMeetingPage() {
               {meetings.map((meeting) => (
                 <Card
                   key={meeting.id}
-                  className="p-6 bg-gray-900 border-white/10 hover:border-primary/50 transition-colors"
+                  className="p-6 bg-gray-900 border-white/10 hover:border-primary/50 transition-colors duration-150 ease-out"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -500,6 +506,7 @@ export default function ScheduleMeetingPage() {
                       onClick={() => handleDelete(meeting.id)}
                       variant="outline"
                       size="sm"
+                      aria-label={`Delete ${meeting.title}`}
                       className="px-3 border-red-500/50 text-red-400 hover:bg-red-500/10"
                     >
                       <Trash2 className="w-4 h-4" />

@@ -7,7 +7,8 @@ import { Mic, MicOff, Video, VideoOff, UserX, Shield, Crown } from 'lucide-react
 import { cn } from '@/lib/utils';
 
 interface Participant {
-  id: string;
+  id: number;
+  userId: string | null;
   displayName: string;
   role: string;
   isAudioMuted: boolean;
@@ -18,10 +19,10 @@ interface Participant {
 interface AdminControlsProps {
   participants: Participant[];
   currentUserId: string;
-  onMuteParticipant: (participantId: string) => void;
-  onToggleVideo: (participantId: string) => void;
-  onRemoveParticipant: (participantId: string) => void;
-  onAssignCoHost: (participantId: string) => void;
+  onMuteParticipant: (participantId: number) => void;
+  onToggleVideo: (participantId: number) => void;
+  onRemoveParticipant: (participantId: number) => void;
+  onAssignCoHost: (participantId: number) => void;
   className?: string;
 }
 
@@ -47,8 +48,8 @@ export function AdminControls({
             key={participant.id}
             className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
           >
-            <div className="flex-1">
-              <p className="text-sm font-medium text-white flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-white flex items-center gap-2 break-words">
                 {participant.displayName}
                 {participant.role === 'host' && (
                   <Crown className="w-4 h-4 text-yellow-400" />
@@ -60,13 +61,14 @@ export function AdminControls({
               <p className="text-xs text-gray-400">{participant.role}</p>
             </div>
 
-            {participant.id !== currentUserId && (
+            {participant.userId !== currentUserId && (
               <div className="flex gap-1">
                 <Button
                   onClick={() => onMuteParticipant(participant.id)}
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  aria-label={`${participant.isAudioMuted ? "Unmute" : "Mute"} ${participant.displayName}`}
+                  className="h-10 w-10 p-0"
                   title={participant.isAudioMuted ? "Unmute" : "Mute"}
                 >
                   {participant.isAudioMuted ? (
@@ -80,7 +82,8 @@ export function AdminControls({
                   onClick={() => onToggleVideo(participant.id)}
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  aria-label={`${participant.isVideoOff ? "Enable" : "Disable"} ${participant.displayName}'s video`}
+                  className="h-10 w-10 p-0"
                   title={participant.isVideoOff ? "Enable video" : "Disable video"}
                 >
                   {participant.isVideoOff ? (
@@ -95,7 +98,8 @@ export function AdminControls({
                     onClick={() => onAssignCoHost(participant.id)}
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0"
+                    aria-label={`Make ${participant.displayName} a co-host`}
+                    className="h-10 w-10 p-0"
                     title="Assign as co-host"
                   >
                     <Shield className="w-4 h-4 text-blue-400" />
@@ -106,7 +110,8 @@ export function AdminControls({
                   onClick={() => onRemoveParticipant(participant.id)}
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  aria-label={`Remove ${participant.displayName} from the meeting`}
+                  className="h-10 w-10 p-0"
                   title="Remove participant"
                 >
                   <UserX className="w-4 h-4 text-red-400" />

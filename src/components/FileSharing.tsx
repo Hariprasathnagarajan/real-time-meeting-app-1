@@ -73,22 +73,25 @@ export function FileSharing({
       </h3>
 
       {/* Upload Area */}
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={cn(
-          "border-2 border-dashed rounded-lg p-6 mb-4 text-center transition-colors cursor-pointer",
-          isDragging
-            ? "border-primary bg-primary/10"
-            : "border-white/20 hover:border-primary/50"
-        )}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-        <p className="text-sm text-gray-400">
-          Drop files here or click to upload
-        </p>
+      <div>
+        <button
+          type="button"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={cn(
+            "w-full border-2 border-dashed rounded-lg p-6 mb-4 text-center transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            isDragging
+              ? "border-primary bg-primary/10"
+              : "border-white/20 hover:border-primary/50"
+          )}
+        >
+          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" aria-hidden="true" />
+          <span className="block text-sm text-gray-400">
+            Drop files here or click to upload
+          </span>
+        </button>
         <input
           ref={fileInputRef}
           type="file"
@@ -124,7 +127,8 @@ export function FileSharing({
                   onClick={() => onDownload(file.fileUrl, file.fileName)}
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  aria-label={`Download ${file.fileName}`}
+                  className="h-10 w-10 p-0"
                   title="Download"
                 >
                   <Download className="w-4 h-4" />
@@ -135,10 +139,11 @@ export function FileSharing({
                     onClick={() => onDelete(file.id)}
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0"
+                    aria-label={`Delete ${file.fileName}`}
+                    className="h-10 w-10 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                     title="Delete"
                   >
-                    <X className="w-4 h-4 text-red-400" />
+                    <X className="w-4 h-4" />
                   </Button>
                 )}
               </div>

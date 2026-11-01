@@ -93,7 +93,7 @@ export function PollsPanel({
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="What's your question?"
-                className="bg-white/5 border-white/10 text-white"
+                className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
               />
             </div>
 
@@ -105,14 +105,15 @@ export function PollsPanel({
                     value={option}
                     onChange={(e) => updateOption(index, e.target.value)}
                     placeholder={`Option ${index + 1}`}
-                    className="bg-white/5 border-white/10 text-white"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
                   />
                   {options.length > 2 && (
                     <Button
                       onClick={() => removeOption(index)}
                       variant="ghost"
                       size="sm"
-                      className="px-2"
+                      aria-label={`Remove option ${index + 1}`}
+                      className="h-10 w-10 p-0"
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -125,7 +126,7 @@ export function PollsPanel({
                 size="sm"
                 className="w-full"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-4 h-4" />
                 Add Option
               </Button>
             </div>
@@ -195,7 +196,7 @@ export function PollsPanel({
                       <div key={index}>
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-white">{option}</span>
-                          <span className="text-gray-400">
+                          <span className="text-gray-400 tabular-nums">
                             {votes} ({percentage.toFixed(0)}%)
                           </span>
                         </div>
